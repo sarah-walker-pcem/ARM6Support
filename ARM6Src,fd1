@@ -1,0 +1,194 @@
+REM ARM6Support v0.01 by Sarah Walker
+codesize% = 1000
+DIM code% codesize%
+REM Clear the core; BASIC will otherwise leak previous bytes when ALIGN is used.
+FOR A%=0 TO codesize%-4 STEP4
+    code%!A% = 0
+NEXT
+:
+version$="0.01 (22 Mar 2023)"
+:
+FOR PASS = &10 TO &13 STEP 3
+P%=code%
+[OPT PASS
+.mstart
+    EQUD 0 ;start
+    EQUD init - mstart ;init
+    EQUD fini - mstart ;fini
+    EQUD 0 ;service call
+    EQUD title_str - mstart
+    EQUD help_str - mstart
+    EQUD 0 ;offset to table
+    EQUD 0
+    EQUD 0
+    EQUD 0
+
+.title_str
+    EQUS "ARM6Support"
+    EQUB 0
+
+.help_str
+    EQUS "ARM6Support"
+    EQUB 9
+    EQUS version$
+    EQUB 0
+    ALIGN
+
+.arm610ID
+    EQUD &41560610
+
+.init
+    STR r14, [r13, #-4]!
+
+    SWI "OS_WriteS"
+    EQUS "ARM6Support init"
+    EQUB &a : EQUB &d : EQUB 0
+
+    SWI "OS_WriteS"
+    EQUS "ARM CPUID="
+    EQUB 0
+    ALIGN
+
+    MRC cp15, 0, r0, c0, c0  ;Read CPU ID
+
+    STR r0, [r13, #-4]!
+
+    SUB r13, r13, #12
+    MOV r1, r13
+    MOV r2, #12
+    SWI "OS_ConvertHex8"
+    SWI "OS_Write0"
+    SWI "OS_NewLine"
+    ADD r13, r13, #12
+
+    LDR r0, [r13], #4
+
+    LDR r1, arm610ID
+    BIC r0, r0, #&f
+    CMP r0, r1
+    BEQ id_ok
+
+    SWI "OS_WriteS"
+    EQUS "Invalid CPU ID - not ARM610"
+    EQUB &a : EQUB &d : EQUB 0
+
+    ADR r0, errorblock_cpu
+    CMP pc, #&80000000 ;Set V
+    LDR pc, [r13], #4
+
+.errorblock_cpu
+    EQUD &fff
+    EQUS "ARM610 not detected"
+    EQUB 0
+
+.id_ok
+    ;Allocate memory for level 1 pagetable
+    ;Over-allocate so we can ensure 16kb alignment
+    MOV r0, #6
+    MOV r3, #32768
+    SWI "OS_Module"
+
+    STR r2, [r12]
+
+    SWI "OS_WriteS"
+    EQUS "Memory="
+    EQUB 0
+
+    SUB r13, r13, #12
+
+    LDR r0, [r12]
+    MOV r1, r13
+    MOV r2, #12
+    SWI "OS_ConvertHex8"
+    SWI "OS_Write0"
+
+    ADD r13, r13, #12
+
+    SWI "OS_NewLine"
+
+
+    ;Fill pagetable
+    LDR r0, [r12]      ;Align to 16kb
+    ADD r0, r0, #&8000
+    MOV r4, r0
+    SUB r0, r0, #1
+    BIC r0, r0, #&ff
+    BIC r0, r0, #&7f00
+
+    ;Identity section mapping for the first 64 MB
+    MOV r1, #2 ;section
+    ORR r1, r1, #(3 << 10)  ;User read/write
+    ;Not cacheable, updateable or bufferable for now
+    MOV r2, #0
+.identity_loop
+    ORR r3, r1, r2, LSL #20
+    STR r3, [r0], #4
+    ADD r2, r2, #1
+    CMP r2, #64
+    BNE identity_loop
+
+    ;Invalid for 64M-4G
+    ;Probably not required when PROG32=DATA32=0, but better safe
+    ;than sorry!
+    MOV r1, #0 ;Invalid/fault
+.fault_loop:
+    STR r1, [r0], #4
+    ADD r2, r2, #1
+    CMP r2, #4096
+    BNE fault_loop
+
+
+    STR r4, [r13, #-4]!
+
+    SWI "OS_WriteS"
+    EQUS "Enabling MMU..."
+    EQUB 0
+
+    LDR r4, [r13], #4
+
+    ;Enable MMU!
+    MCR cp15, 0, r0, c5, c0     ;Flush TLB
+
+    MCR cp15, 0, r4, c2, c0     ;Translation Table Base
+
+    MOV r0, #1 ;DACR - domain 0 is client, all others fault
+    MCR cp15, 0, r0, c3, c0
+
+    MOV r0, #1 ;Enable MMU
+    MCR cp15, 0, r0, c0, c0
+
+    SWI "OS_WriteS"
+    EQUS "done!"
+    EQUB &a : EQUB &d : EQUB 0
+
+    LDR pc, [r13], #4
+
+.fini
+    STR r14, [r13, #-4]!
+
+    SWI "OS_WriteS"
+    EQUS "ARM6Support fini"
+    EQUB &a : EQUB &d : EQUB 0
+
+    SWI "OS_WriteS"
+    EQUS "Disabling MMU..."
+    EQUB 0
+
+    MOV r0, #0 ;Disable MMU
+    MCR cp15, 0, r0, c0, c0
+    MCR cp15, 0, r0, c5, c0     ;Flush TLB
+
+    SWI "OS_WriteS"
+    EQUS "done!"
+    EQUB &a : EQUB &d : EQUB 0
+
+    MOV r0, #7
+    LDR r2, [r12]
+    SWI "OS_Module"
+
+    LDR pc, [r13], #4
+.mend
+]
+NEXT
+OSCLI "SAVE ARM6SUPP " + STR$~(mstart) + "+" + STR$~(mend-mstart)
+*settype ARM6SUPP ffa

@@ -1,0 +1,25 @@
+# Definition for CI within GitLab
+# Note:
+#    Prefix any job name with a '.' to disable.
+#
+
+
+#### Builds ####
+build-riscos:
+  # Builds using the build service
+  stage: build
+  script:
+    # Perform a build
+    - ./test-build.sh
+
+  artifacts:
+    when: always
+    paths:
+      - ARM6Supp,ffa
+  tags:
+    - linux
+
+
+#### Stages to execute ####
+stages:
+  - build
