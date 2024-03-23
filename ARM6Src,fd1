@@ -1,5 +1,11 @@
 REM ARM6Support v0.01 by Sarah Walker
-DIM code% 1000
+codesize% = 1000
+DIM code% codesize%
+REM Clear the core; BASIC will otherwise leak previous bytes when ALIGN is used.
+FOR A%=0 TO codesize%-4 STEP4
+    code%!A% = 0
+NEXT
+:
 FOR PASS = &10 TO &13 STEP 3
 P%=code%
 [OPT PASS
