@@ -25,4 +25,4 @@ zip -q9r /tmp/source-archive.zip ARM6Src,fd1 .robuild.yaml
 
 # Send the archive file to build service
 echo Run on the build service
-"${RISCOS_BUILD_ONLINE}" -i /tmp/source-archive.zip -a off -t 60 -o ARM6Supp
+"${RISCOS_BUILD_ONLINE}" -i /tmp/source-archive.zip -a off -t 60 -o ARM6SUPP

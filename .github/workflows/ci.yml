@@ -44,8 +44,8 @@ jobs:
         run: |
           version=$(grep -Eo 'version\$=.*? ' ARM6Src,fd1 | cut -d'"' -f2)
           echo "This is version: $version"
-          echo "::set-output name=version::$version"
-          echo "::set-output name=leafname::ARM6Supp,ffa"
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "leafname=ARM6SUPP,ffa" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v3
         with:
