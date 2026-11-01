@@ -11,3 +11,4 @@ This is intended for Archimedes machines with experimental ARM610/710 CPU board.
 * 0.05 - Corrected Arm710 ID - was actually Arm710a.  Added Arm710 ID.
 * 0.06 - Trap OS_SetMemMapEntries and perform cache flush
 * 0.07 - Enable write buffer (required for original ARM710)
+* 0.08 - Enable cacheing in module, sprite and system heap areas
