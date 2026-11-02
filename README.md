@@ -13,3 +13,4 @@ This is intended for Archimedes machines with experimental ARM610/710 CPU board.
 * 0.07 - Enable write buffer (required for original ARM710)
 * 0.08 - Enable cacheing in module, sprite and system heap areas
 * 0.09 - Enable cacheing of ROM, rework CPU type detection
+* 0.10 - Mark video memory as bufferable
